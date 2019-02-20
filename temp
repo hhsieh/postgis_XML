@@ -1,0 +1,15 @@
+SELECT xmlelement(name marker, xmlattributes(id as id, concat(plot, edge_id) as label),
+                  xmlelement(
+                    name reference,
+                    xmlattributes(x as x, y as y, 1 as sxy, 1 as enabled)))
+FROM (SELECT id, plot, edge_id as edge_id, x as x, y as y
+      FROM (SELECT id, plot, (dp).path [ 2 ] as edge_id, ST_X((dp).geom) As x, ST_Y((dp).geom) As y
+            FROM (SELECT gid                                                 as id,
+                         concat('G', treatment, 'R', replicate, '-')         AS plot,
+                         ST_DumpPoints(ST_AsText(ST_GeometryN(the_geom, 1))) AS dp
+                  FROM public.areas
+                  WHERE site = 'KBS GLBRC Intensive Site'
+                    AND experiment = 'GLBRC Biofuel Cropping System Experiment'
+                    AND feature = 'plot') AS dp) As foo
+      WHERE edge_id = 2
+         OR edge_id = 3) AS sub;
