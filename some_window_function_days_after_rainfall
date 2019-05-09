@@ -1,0 +1,18 @@
+CREATE VIEW test.lakecity_days_after_rainfall AS
+SELECT t1.location, t1.date, t1.daily_cumulative_precip,
+       (date - coalesce(max(t1.date) filter (where t1.daily_cumulative_precip > 0) over (order by date),
+                        min(t1.date) over (order by t1.date)
+           )) as days_after_rainfall
+FROM
+    (SELECT distinct marginal_land_hour.location,
+                            (date_trunc('day' :: text, marginal_land_hour.datetime)) :: date AS date,
+                            sum(
+                              marginal_land_hour.rain_mm_tot) OVER (PARTITION BY marginal_land_hour.location, ((date_trunc(
+                                'day' :: text, marginal_land_hour.datetime)) :: date) ORDER BY ((date_trunc(
+                                'day' :: text, marginal_land_hour.datetime)) :: date))       AS daily_cumulative_precip
+            FROM weather.marginal_land_hour WHERE location = 'Lake City' ORDER BY location, date) t1 ORDER BY location, date;
+
+SELECT * FROM
+              (SELECT * FROM test.escanaba_days_after_rainfall
+union
+SELECT * FROM test.lakecity_days_after_rainfall) AS t1 ORDER BY location, date;
