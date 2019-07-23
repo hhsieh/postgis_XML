@@ -1,0 +1,40 @@
+SELECT * FROM test.shp_classifications;
+
+create table test.dist_classification_point5 as
+select a.id from_gid, b.id to_gid, st_shortestline(a.geom,b.geom), st_distance(a.geom,b.geom) as distance
+from
+test.shp_classifications as a,
+(select * from test.shp_classifications) as b
+where st_dwithin(a.geom,b.geom,0.00001);
+
+SELECT * FROM test.dist_classification_point5;
+DROP TABLE test.dist_classification_point5;
+
+CREATE TABLE test.classifications AS
+SELECT row_number() over () AS id,
+  ST_NumGeometries(gc),
+  gc AS geom_collection,
+  ST_Centroid(gc) AS centroid,
+  ST_MinimumBoundingCircle(gc) AS circle,
+  sqrt(ST_Area(ST_MinimumBoundingCircle(gc)) / pi()) AS radius
+FROM (
+  SELECT unnest(ST_ClusterWithin(geom, 0.00001)) gc
+  FROM test.shp_classifications
+) f;
+
+
+SELECT * FROM test.classifications;
+
+
+SELECT row_number() over () AS id,
+  ST_area
+      (gc),
+  ST_NumGeometries(gc),
+  gc AS geom_collection,
+  ST_Centroid(gc) AS centroid,
+  ST_MinimumBoundingCircle(gc) AS circle,
+  sqrt(ST_Area(ST_MinimumBoundingCircle(gc)) / pi()) AS radius
+FROM (
+  SELECT unnest(ST_ClusterWithin(geom, 0.00001)) gc
+  FROM test.shp_classifications
+) f;
